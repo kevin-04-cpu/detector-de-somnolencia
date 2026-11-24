@@ -2,87 +2,62 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DrowsyDetect · Detección de somnolencia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Detector de somnolencia</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="bg-glow"></div>
+  <main class="stage" id="stage">
+    <video id="video" autoplay playsinline muted></video>
+    <img id="photo" alt="Imagen seleccionada" hidden />
+    <canvas id="overlay"></canvas>
 
-  <header class="nav">
-    <div class="brand"><span class="dot"></span> DrowsyDetect</div>
-    <div class="nav-right">
-      <span class="status" id="apiStatus"><i></i><span>Modo demo</span></span>
+    <div class="empty" id="empty">
+      <p id="emptyText">Toca el botón para encender la cámara frontal</p>
+      <button class="btn-text" id="startCam">Encender cámara</button>
     </div>
-  </header>
-
-  <main class="container">
-    <section class="hero">
-      <span class="pill">CNN · Clasificación binaria</span>
-      <h1>¿El conductor está <em>somnoliento</em>?</h1>
-      <p>Toma una foto con tu cámara o sube una imagen del rostro y el modelo la clasificará como
-        <strong>Drowsy</strong> o <strong>Non Drowsy</strong>.</p>
-    </section>
-
-    <section class="card">
-      <div class="tabs" role="tablist">
-        <button class="tab active" data-tab="upload" role="tab">Subir imagen</button>
-        <button class="tab" data-tab="camera" role="tab">Usar cámara</button>
-      </div>
-
-      <div class="grid">
-        <!-- Entrada -->
-        <div class="panel">
-          <div id="tab-upload" class="tab-content active">
-            <label class="dropzone" id="dropzone">
-              <input type="file" id="fileInput" accept="image/*" hidden />
-              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-              <strong>Arrastra una imagen aquí</strong>
-              <span>o haz clic para seleccionar (JPG, PNG)</span>
-            </label>
-          </div>
-
-          <div id="tab-camera" class="tab-content">
-            <div class="viewer">
-              <video id="video" autoplay playsinline muted></video>
-              <div class="placeholder" id="camPlaceholder">La cámara está apagada</div>
-            </div>
-            <div class="row">
-              <button class="btn ghost" id="startCam">Encender cámara</button>
-              <button class="btn" id="snap" disabled>Capturar foto</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Vista previa / resultado -->
-        <div class="panel">
-          <div class="viewer preview">
-            <img id="preview" alt="Vista previa" hidden />
-            <div class="placeholder" id="prevPlaceholder">Aquí aparecerá la imagen</div>
-            <div class="scan" id="scan" hidden></div>
-          </div>
-          <div class="row">
-            <button class="btn ghost" id="reset" disabled>Limpiar</button>
-            <button class="btn primary" id="analyze" disabled>Analizar</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="result" id="result" hidden>
-        <div class="badge" id="badge"></div>
-        <div class="res-info">
-          <h2 id="resTitle"></h2>
-          <p id="resDesc"></p>
-          <div class="bar"><div id="barFill"></div></div>
-          <div class="bar-label"><span>Confianza</span><b id="resConf"></b></div>
-        </div>
-      </div>
-    </section>
-
-    <footer>Universidad de Pamplona · Sistemas Inteligentes · Prototipo académico</footer>
   </main>
 
-  <canvas id="canvas" hidden></canvas>
-  <script src="app.js"></script>
+  <header class="top">
+    <span class="chip" id="faceChip">Sin rostro</span>
+    <span class="chip muted" id="apiChip">Sin modelo</span>
+  </header>
+
+  <section class="sheet" id="sheet" hidden>
+    <div class="sheet-row">
+      <div>
+        <p class="sheet-label">Resultado</p>
+        <h2 id="resTitle">—</h2>
+      </div>
+      <p class="sheet-conf" id="resConf">—</p>
+    </div>
+    <div class="meter"><div id="meterFill"></div></div>
+    <p class="sheet-desc" id="resDesc"></p>
+    <dl class="sheet-meta">
+      <div><dt>Apertura ojos (EAR)</dt><dd id="resEar">—</dd></div>
+      <div><dt>Fuente</dt><dd id="resSource">—</dd></div>
+    </dl>
+    <button class="btn-text" id="closeSheet">Volver a la cámara</button>
+  </section>
+
+  <nav class="controls">
+    <label class="ctl" title="Elegir imagen de la galería">
+      <input type="file" id="fileInput" accept="image/*" hidden />
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>
+    </label>
+    <button class="shutter" id="shutter" aria-label="Capturar y analizar" disabled><span></span></button>
+    <button class="ctl" id="toggleCam" title="Apagar / encender cámara">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+    </button>
+  </nav>
+
+  <canvas id="work" hidden></canvas>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
